@@ -11,7 +11,7 @@
  * cannot prove is that a live Host serves the route; that is the live section of the report.
  *
  * The fixture catalog carries the efforts **this machine's adapter really advertises**
- * (`off, low, high, max`, read from the live catalog in `scratch/p4-settings/get1.txt`), because
+ * (`off, low, high, max`, read from a live catalog capture), because
  * ACCEPTANCE 2 asks for all four to be accepted on write and one that is not there to be refused.
  * The model slugs in that fixture are the four real ones for the same reason: those are the
  * built-in names' routes and the built-in claim is worth nothing against invented slugs.

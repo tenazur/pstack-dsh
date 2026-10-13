@@ -53,7 +53,7 @@ const CATALOG: RouteCatalog = {
  * The four routes this machine's adapter actually enumerates, with the efforts it actually
  * advertises (`off, low, high, max` on every one of them) and the descriptions it ships.
  *
- * Read from the live catalog (`scratch/p4-settings/get1.txt`), not from memory. This is the only
+ * Read from a live catalog capture, not from memory. This is the only
  * fixture in this file with real slugs, and the four names below are why.
  */
 const REAL_CATALOG: RouteCatalog = {

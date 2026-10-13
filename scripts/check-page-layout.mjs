@@ -14,8 +14,8 @@
  *    survived the flex row it sits in.
  *
  * It renders the **built** bundle (`plugin/lib/client.js`) in headless Chromium against a payload
- * captured from a live Host, with React cut from the shell's own bundle
- * (`scratch/p7-ui/extract-react.mjs`) and the shell's design tokens stubbed in CSS. It needs
+ * captured from a live Host, with React cut from the shell's own bundle by
+ * `scripts/page-harness/extract-react.mjs` and the shell's design tokens stubbed in CSS. It needs
  * `/usr/bin/chromium`; without it the check **skips with a printed reason** rather than passing.
  *
  *   node scripts/check-page-layout.mjs [payload.json]
@@ -28,8 +28,9 @@ import { fileURLToPath } from 'node:url'
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const payloadPath = process.argv[2] ?? join(repo, 'plugin/tests/fixtures/fleet-view.live.json')
 const bundle = join(repo, 'plugin/lib/client.js')
-// Everything the harness needs is committed beside the gate or generated from the shell bundle; a
-// dependency under gitignored `scratch/` is one a fresh clone cannot satisfy.
+// Everything the harness needs is committed beside the gate or generated from the shell bundle.
+// A dependency on a gitignored directory would be one a fresh clone cannot satisfy, and the gates
+// used to have several; they now write to a temp directory and read only tracked fixtures.
 const harness = join(repo, 'scripts/page-harness')
 const react = join(harness, 'react-from-shell.js')
 const tokens = readFileSync(join(harness, 'tokens.css'), 'utf8')

@@ -8,8 +8,10 @@ pnpm-debug.log*
 # `prepare`, so `lib/` ships. Do not ignore lib/.
 # lib/
 
-# Local scratch (agents use ~/.dsh/tmp; nothing scratch belongs in the repo)
-scratch/
+# No `scratch/` entry: nothing writes inside the repo any more. Gates and agents work in a temp
+# directory ($DSH_HOME/tmp or mktemp -d), and the one input a gate needs is TRACKED
+# (scripts/host-fixture/). If a `scratch/` reappears here, something has started writing into the
+# repo again and that entry should not be added back to hide it.
 *.local.*
 
 # Pinned upstream checkout. Reconstituted by scripts/fetch-upstream.sh, never committed:

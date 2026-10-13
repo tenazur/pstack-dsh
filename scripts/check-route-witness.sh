@@ -20,10 +20,10 @@
 #       worse than one that leaks, because the human's own Host is a process it did not start.
 #
 # Case (b)'s listener is started by this script and killed by this script, so the process table is
-# left as it was found. Nothing under `plugin/` is written and the repository's own
-# `scratch/dsh-home` is never touched; the scratch home belongs to `scripts/check-route.sh`
-# (`scratch/p9-route/`, gitignored), and this witness only rewrites the fleet file inside that
-# throwaway home between gate runs, restoring it afterwards.
+# left as it was found. Nothing in the repository is written at all: this script makes a temp
+# working directory, hands it to the gate through `ROUTE_GATE_WORKDIR`, and rewrites the throwaway
+# home's fleet file inside it between gate runs, restoring it afterwards. The temp directory is
+# removed on every exit path, so a run leaves neither files nor processes behind.
 #
 # Exits 0 when every case behaves (the gate fails when it should) and 1 otherwise, so it can be a CI
 # gate itself. Prints one PASS/FAIL line per case and `WITNESS PASS` on success.
@@ -33,7 +33,13 @@ set -uo pipefail
 
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 gate="$repo/scripts/check-route.sh"
-scratch="$repo/scratch/p9-route"
+
+# The witness owns the working directory and hands it to the gate, rather than reaching into one
+# the gate made. That matters here for a concrete reason: the gate deletes the temp directory it
+# creates, so a witness that depended on finding the home afterwards would be racing its own
+# cleanup. `ROUTE_GATE_WORKDIR` is the gate's documented way to supply one; supplying it also tells
+# the gate not to delete it, because it belongs to this script.
+scratch="$(mktemp -d "${TMPDIR:-/tmp}/pstack-route-witness-XXXXXX")"
 home="$scratch/home"
 
 failures=0
@@ -45,6 +51,9 @@ bad() { say "FAIL: $*"; failures=$((failures + 1)); }
 
 cleanup() {
   local rc=$?
+  # Our own workdir, on every exit path including Ctrl-C. The gate leaves it alone because we
+  # supplied it; removing it is this script's job.
+  [[ -n "${scratch:-}" && -d "${scratch:-}" ]] && rm -rf "$scratch"
   if [[ -n "$listener_pid" ]] && kill -0 "$listener_pid" 2>/dev/null; then
     # Only the listener THIS script started, by pid. Never a pattern, never a port sweep.
     kill -TERM "$listener_pid" 2>/dev/null
@@ -81,7 +90,7 @@ if [[ "$busy_port" == "3080" ]]; then
 fi
 
 say "-- baseline: the untouched gate on a healthy tree"
-baseline="$(./"${gate#"$repo/"}" 2>&1)"
+baseline="$(ROUTE_GATE_WORKDIR="$scratch" ./"${gate#"$repo/"}" 2>&1)"
 baseline_rc=$?
 printf '%s\n' "$baseline" | sed 's/^/    /'
 if [[ "$baseline_rc" -ne 0 ]]; then
@@ -121,7 +130,7 @@ say ""
 run_fleet_case() {
   local name="$1" body="$2" want="$3" out rc
   node -e "$body" "$broken/pstack-fleet.json" || { bad "$name: the witness could not seed the defect"; return; }
-  out="$(ROUTE_GATE_HOME="$broken" "$gate" 2>&1)"
+  out="$(ROUTE_GATE_WORKDIR="$scratch" ROUTE_GATE_HOME="$broken" "$gate" 2>&1)"
   rc=$?
   printf '%s\n' "$out" | sed 's/^/    /'
   # Restore before judging, so a later case never inherits this one's defect. The overlay is copied
@@ -253,6 +262,7 @@ listener_pid=""
 
 rm -rf "$broken"
 rm -f "$scratch/witness-fleet.orig.json" "$scratch/witness-overlay.orig.json" "$scratch/witness-listener.log"
+rm -rf "$scratch"
 
 # The tree and the process table must be exactly as they were found.
 if (ss -ltn 2>/dev/null || netstat -ltn 2>/dev/null) | grep -q ":$busy_port "; then

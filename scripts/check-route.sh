@@ -21,13 +21,12 @@
 #
 #   * it never touches port 3080 (the human's live Host) and never kills a process it did not start;
 #   * it never writes `$HOME/.dsh`, which is read-only from the sandbox;
-#   * it never writes the repository's own `scratch/dsh-home`, whose fleet the human inspects — a
-#     `PUT` here would rewrite the files another unit is looking at.
+#   * it never writes inside the repository at all. Working state goes to a temp directory, and the
+#     only tracked thing it reads is the profile fixture under `scripts/host-fixture/`.
 #
-# Isolation: the throwaway home is a COPY of `scratch/dsh-home`. Copying (rather than reusing) is
+# Isolation: the throwaway home is a COPY of the tracked fixture. Copying (rather than reusing) is
 # what makes the failure branch of `check-route-witness.sh` possible at all — a witness can empty the
-# copy's fleet file without touching anything a person cares about. `cp -a` preserves the profile's
-# `node_modules` symlinks, which are relative and still resolve inside the copy.
+# copy's fleet file without touching anything a person cares about.
 #
 # One thing a copy cannot fix: the `rescue` profile links `dsh-pstack` at the MAIN checkout
 # (`../../../../../plugin`), not at the worktree this script lives in. The copy is therefore
@@ -59,16 +58,26 @@
 # paths instead of a paraphrase of them:
 #
 #   ROUTE_GATE_HOME    use an already-built throwaway home VERBATIM, instead of building one from
-#                      the scratch template. The witness uses it to boot a home whose fleet file
+#                      the tracked fixture. The witness uses it to boot a home whose fleet file
 #                      declares no violins — a 200 with an empty fleet.
 #   ROUTE_GATE_PORT    the port to boot on (default 3121). The witness uses it to aim the gate at a
 #                      port something else already answers on.
+#   ROUTE_GATE_WORKDIR the directory to build the throwaway home in (default: a fresh mktemp -d).
+#                      Supply one and the gate will NOT delete it, because it then belongs to you;
+#                      the witness does exactly that, since it needs the home to seed defects in.
 set -uo pipefail
 
 repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 port="${ROUTE_GATE_PORT:-3121}"
-scratch="$repo/scratch/p9-route"
+
+# Working state goes to a TEMP directory, never inside the repo. A gitignored `scratch/` is still
+# on disk and still has to be cleaned by a human; a temp dir costs nothing and leaves the checkout
+# exactly as it was. The template this gate boots from IS tracked (`scripts/host-fixture/`), because
+# a fresh clone has to be able to run it — that is the distinction: committed inputs, temp outputs.
+scratch="${ROUTE_GATE_WORKDIR:-$(mktemp -d "${TMPDIR:-/tmp}/pstack-route-XXXXXX")}"
+own_scratch=0
+[[ -n "${ROUTE_GATE_WORKDIR:-}" ]] || own_scratch=1
 given_home="${ROUTE_GATE_HOME:-}"
 home="${given_home:-$scratch/home}"
 bootlog="$scratch/boot.log"
@@ -107,6 +116,11 @@ cleanup() {
     say ""
     say "ROUTE GATE FAIL: $failure"
   fi
+  # Remove the working directory we made, and only that: a caller-supplied ROUTE_GATE_WORKDIR
+  # belongs to the caller, and the witness owns its content.
+  if [[ "$own_scratch" == "1" && -n "$scratch" && -d "$scratch" ]]; then
+    rm -rf "$scratch"
+  fi
   return $rc
 }
 trap 'cleanup; exit 1' INT TERM
@@ -138,34 +152,16 @@ if port_busy; then
   refuse "port $port already answers; refusing to reuse or to kill a process this script did not start"
 fi
 
-# The template home. `scratch/` is gitignored, so a unit working in a cut worktree does not have
-# one; the main checkout's is the same throwaway profile, so fall back to it. Either way the boot
-# happens in a copy under THIS tree, so the template is only read.
-template="$repo/scratch/dsh-home"
-template_from="this checkout"
-main_checkout=""
+# The template home: a TRACKED profile definition, so a fresh clone can run this gate. It is four
+# small files (`profiles/rescue/`), not a whole booted home — the gate generates everything else,
+# including the `node_modules` link to this tree's plugin, which it re-points below.
+template="$repo/scripts/host-fixture"
 if [[ ! -d "$template/profiles/rescue" ]]; then
-  # `--git-common-dir` is <main>/.git in a worktree and "." in the main checkout; normalise both.
-  common="$(git -C "$repo" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)"
-  if [[ -n "$common" ]]; then
-    main_checkout="$(dirname "$common")"
-    if [[ -d "$main_checkout/scratch/dsh-home/profiles/rescue" ]]; then
-      template="$main_checkout/scratch/dsh-home"
-      template_from="the main checkout $main_checkout (this worktree has no scratch home)"
-    fi
-  fi
-fi
-
-if [[ ! -d "$template/profiles/rescue" ]]; then
-  say "FAIL: no throwaway scratch home to boot from. Looked in:"
-  say "  $repo/scratch/dsh-home"
-  say "  ${main_checkout:-<no main checkout found>}/scratch/dsh-home"
-  say "  scratch/ is gitignored, so a fresh clone has none. Recreate one (see"
-  say "  scratch/p4-settings/README.md) or run this gate from a checkout that has it."
-  say "  Not skipping: a gate that skips is the problem this one fixes."
+  say "FAIL: the throwaway profile fixture is missing at $template/profiles/rescue."
+  say "  It is tracked; a checkout without it is broken, not merely un-provisioned."
   exit 1
 fi
-say "route gate: scratch home template: $template (from $template_from)"
+say "route gate: host fixture: $template/profiles/rescue (tracked)"
 
 # ---------------------------------------------------------------- the throwaway home
 # A home handed in through ROUTE_GATE_HOME is used exactly as it is: it belongs to the caller (the
@@ -179,14 +175,14 @@ if [[ -n "$given_home" ]]; then
 else
 mkdir -p "$scratch"
 if ! cp -a "$template" "$home" 2>"$scratch/copy.err"; then
-  say "FAIL: could not copy the scratch home:"
+  say "FAIL: could not copy the host fixture:"
   sed 's/^/    /' "$scratch/copy.err"
   exit 1
 fi
 
 # Drop the template's own fleet and overlay. They are leftovers from whatever ran in that home
 # before, and the groups file WINS over the defaults on load: a stale placement would make this gate
-# report a defect in the build that is really a defect in the scratch directory. Booting with
+# report a defect in the build that is really a defect in the working directory. Booting with
 # neither file present is the documented "setup" path and rebuilds
 # both from `defaultGroups` — which is exactly the fresh-install state this gate is about.
 rm -f "$home/pstack-fleet.json" "$home/pstack.json"
@@ -216,6 +212,11 @@ if [[ -f "$patch_file" ]] && ! grep -qE '^[[:space:]]*\[\][[:space:]]*$' "$patch
 fi
 
 # Re-point the rescue profile at THIS tree's plugin, so the gate measures the working tree.
+#
+# The fixture ships no `node_modules/`, and deliberately so: a directory of symlinks is generated
+# state, and a checked-in one would either carry an absolute path (the leak this gate used to have)
+# or rot. `mkdir -p` then one link is the whole of what it stood for.
+mkdir -p "$home/profiles/rescue/node_modules"
 plugin_link="$home/profiles/rescue/node_modules/dsh-pstack"
 if [[ -e "$plugin_link" || -L "$plugin_link" ]]; then
   rm -f "$plugin_link"

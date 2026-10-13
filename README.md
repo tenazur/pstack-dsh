@@ -13,9 +13,9 @@ plugin/     the published package — lib/ (built), src/ (TypeScript), skills/, 
 scripts/    the gates. Seven of them, each a command that exits non-zero
 ```
 
-A `scratch/` directory appears while you work — the gates write their working directories there —
-but it is gitignored and is **not** in this repository. Nothing you need is in it; one gate asks for
-input you supply yourself, which the section below spells out.
+`scripts/` also holds `host-fixture/` — a four-file profile definition, tracked, because the route
+gate boots a real Host from it. Nothing writes inside the repository: gates do their work in a temp
+directory and remove it on the way out.
 
 ## Install
 
@@ -166,15 +166,18 @@ Two of those gates can be shown to *fail* rather than merely passing:
 assert the gate refuses it. A gate that cannot fail proves nothing, so these are the ones to run
 when you want to trust the others.
 
-**From a fresh clone, two gates need input this repository does not ship.** Both say so by name
-rather than skipping silently, which is deliberate: a gate that skips is the problem they exist to
-solve.
+Every input these gates need is tracked, so a fresh clone can run all of them. Two need something
+from your machine:
 
-- `check-page-layout.mjs` needs `node scripts/page-harness/extract-react.mjs` to run first. It
-  extracts React out of an installed DSH rather than vendoring it here.
-- `check-route.sh` boots a throwaway Host, so it needs a throwaway `DSH_HOME` under `scratch/` with
-  a web-app profile in it. Point it at one with `ROUTE_GATE_HOME`, or let it copy a template from
-  `scratch/dsh-home` if you are working inside a checkout that has one.
+- `check-page-layout.mjs` needs `node scripts/page-harness/extract-react.mjs` to run once first. It
+  cuts React out of an installed DSH rather than vendoring a copy here, and it needs
+  `/usr/bin/chromium`; without that the check skips with a printed reason.
+- `check-route.sh` boots a real Host from `scripts/host-fixture/`, so it needs `dsh` and `pnpm` on
+  `PATH`. It builds its throwaway home in a temp directory and removes it afterwards, so it writes
+  nothing inside the repository.
+
+Both name what they are missing rather than skipping silently — a gate that skips is the problem
+they exist to solve.
 ## Licence
 
 MIT. The methodology text is Lauren Tan's, from `cursor/plugins`; see [`plugin/LICENSE`](plugin/LICENSE).
