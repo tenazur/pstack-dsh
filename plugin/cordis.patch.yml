@@ -1,0 +1,6 @@
+# Bundle layer for `dsh plugin --profile web add`.
+# Package name, not a machine path. The plugin row resolves through the profile's
+# node_modules, so the same file works for a `github:` install and a local link.
+- insert:
+    - id: pstack
+      name: dsh-pstack

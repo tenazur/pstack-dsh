@@ -1,0 +1,32 @@
+{
+  "$comment": [
+    "Relative imports carry an explicit `.ts` extension because `node --test` runs the sources",
+    "directly with type stripping, and Node does not map `./x.js` onto `./x.ts` (verified:",
+    "ERR_MODULE_NOT_FOUND). `allowImportingTsExtensions` permits that spelling and",
+    "`rewriteRelativeImportExtensions` (TypeScript >= 5.7) rewrites it to `.js` on emit, so the",
+    "built `lib/` graph is still resolvable by Node. Verified on tsc 5.9.3.",
+    "",
+    "`src/client` is excluded here and built by tsconfig.client.json: that half is a browser",
+    "script (DOM lib, CommonJS, no node types) that must land at exactly `lib/client.js`, and one",
+    "config cannot be both halves. Two configs, two output graphs, no shared file."
+  ],
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022"],
+    "types": ["node"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "declaration": true,
+    "outDir": "lib",
+    "rootDir": "src",
+    "skipLibCheck": true,
+    "verbatimModuleSyntax": true,
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/client"]
+}

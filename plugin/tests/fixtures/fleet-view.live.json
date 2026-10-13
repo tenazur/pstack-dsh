@@ -1,0 +1,494 @@
+{
+  "groupsPath": "/home/user/projects/pstack/scratch/dsh-home/pstack-fleet.json",
+  "overlayPath": "/home/user/projects/pstack/scratch/dsh-home/pstack.json",
+  "origin": "defaults",
+  "repairs": [
+    "no fleet groups file and no overlay existed; wrote the default fleet to /home/user/projects/pstack/scratch/dsh-home/pstack-fleet.json"
+  ],
+  "groupsError": null,
+  "groups": {
+    "version": 1,
+    "violins": [
+      {
+        "id": "general",
+        "name": "general",
+        "origin": "predefined",
+        "selections": [
+          {
+            "provider": "deepseek-official",
+            "model": "deepseek-flash",
+            "reasoningEffort": "off"
+          }
+        ],
+        "tasks": []
+      },
+      {
+        "id": "working",
+        "name": "working",
+        "origin": "predefined",
+        "selections": [
+          {
+            "provider": "deepseek-official",
+            "model": "deepseek-flash",
+            "reasoningEffort": "high"
+          }
+        ],
+        "tasks": []
+      },
+      {
+        "id": "planning",
+        "name": "planning",
+        "origin": "predefined",
+        "selections": [
+          {
+            "provider": "deepseek-official",
+            "model": "deepseek-v4-pro",
+            "reasoningEffort": "max",
+            "description": "Stronger agentic coding, knowledge, and difficult reasoning; suited to complex or quality-critical tasks at higher cost."
+          }
+        ],
+        "tasks": [
+          "judgment-and-prose",
+          "how-explainer",
+          "why-investigators",
+          "independent-verifier",
+          "reflect-judgment"
+        ]
+      },
+      {
+        "id": "fast",
+        "name": "fast",
+        "origin": "predefined",
+        "selections": [
+          {
+            "provider": "deepseek-official",
+            "model": "deepseek-v4-flash",
+            "reasoningEffort": "low",
+            "description": "Fast, efficient, and economical; suited to focused, routine, or parallel tasks."
+          }
+        ],
+        "tasks": [
+          "how-explorer"
+        ]
+      },
+      {
+        "id": "vision",
+        "name": "vision",
+        "origin": "predefined",
+        "selections": [
+          {
+            "provider": "deepseek-official",
+            "model": "deepseek-v4-flash-vision-exp",
+            "reasoningEffort": "high"
+          }
+        ],
+        "tasks": [
+          "poteto-agent",
+          "comment-sicko"
+        ]
+      },
+      {
+        "id": "arena-runners",
+        "name": "arena-runners",
+        "origin": "comparison",
+        "selections": [
+          {
+            "provider": "deepseek-official",
+            "model": "deepseek-v4-pro",
+            "reasoningEffort": "max",
+            "description": "Stronger agentic coding, knowledge, and difficult reasoning; suited to complex or quality-critical tasks at higher cost."
+          },
+          {
+            "provider": "deepseek-official",
+            "model": "deepseek-flash",
+            "reasoningEffort": "high"
+          }
+        ],
+        "tasks": [
+          "arena-runners"
+        ]
+      },
+      {
+        "id": "arena-cross-judge-pool",
+        "name": "arena-cross-judge-pool",
+        "origin": "comparison",
+        "selections": [
+          {
+            "provider": "deepseek-official",
+            "model": "deepseek-v4-pro",
+            "reasoningEffort": "max",
+            "description": "Stronger agentic coding, knowledge, and difficult reasoning; suited to complex or quality-critical tasks at higher cost."
+          },
+          {
+            "provider": "deepseek-official",
+            "model": "deepseek-flash",
+            "reasoningEffort": "high"
+          }
+        ],
+        "tasks": [
+          "arena-cross-judge-pool"
+        ]
+      },
+      {
+        "id": "architect-runners",
+        "name": "architect-runners",
+        "origin": "comparison",
+        "selections": [
+          {
+            "provider": "deepseek-official",
+            "model": "deepseek-v4-pro",
+            "reasoningEffort": "max",
+            "description": "Stronger agentic coding, knowledge, and difficult reasoning; suited to complex or quality-critical tasks at higher cost."
+          },
+          {
+            "provider": "deepseek-official",
+            "model": "deepseek-flash",
+            "reasoningEffort": "high"
+          }
+        ],
+        "tasks": [
+          "architect-runners"
+        ]
+      },
+      {
+        "id": "interrogate-reviewers",
+        "name": "interrogate-reviewers",
+        "origin": "comparison",
+        "selections": [
+          {
+            "provider": "deepseek-official",
+            "model": "deepseek-v4-pro",
+            "reasoningEffort": "max",
+            "description": "Stronger agentic coding, knowledge, and difficult reasoning; suited to complex or quality-critical tasks at higher cost."
+          },
+          {
+            "provider": "deepseek-official",
+            "model": "deepseek-flash",
+            "reasoningEffort": "high"
+          }
+        ],
+        "tasks": [
+          "interrogate-reviewers"
+        ]
+      }
+    ]
+  },
+  "problems": [],
+  "catalog": {
+    "routes": [
+      {
+        "provider": "deepseek-official",
+        "model": "deepseek-flash",
+        "efforts": [
+          "off",
+          "low",
+          "high",
+          "max"
+        ],
+        "defaultEffort": "high"
+      },
+      {
+        "provider": "deepseek-official",
+        "model": "deepseek-v4-flash",
+        "efforts": [
+          "off",
+          "low",
+          "high",
+          "max"
+        ],
+        "description": "Fast, efficient, and economical; suited to focused, routine, or parallel tasks.",
+        "defaultEffort": "high"
+      },
+      {
+        "provider": "deepseek-official",
+        "model": "deepseek-v4-pro",
+        "efforts": [
+          "off",
+          "low",
+          "high",
+          "max"
+        ],
+        "description": "Stronger agentic coding, knowledge, and difficult reasoning; suited to complex or quality-critical tasks at higher cost.",
+        "defaultEffort": "high"
+      },
+      {
+        "provider": "deepseek-official",
+        "model": "deepseek-v4-flash-vision-exp",
+        "efforts": [
+          "off",
+          "low",
+          "high",
+          "max"
+        ],
+        "defaultEffort": "high"
+      }
+    ],
+    "unavailable": [
+      {
+        "provider": "amazon-bedrock",
+        "why": "declared by an adapter (settings namespace \"llm-pi-ai\") but not registered; configure it to make this route usable"
+      },
+      {
+        "provider": "ant-ling",
+        "why": "declared by an adapter (settings namespace \"llm-pi-ai\") but not registered; configure it to make this route usable"
+      },
+      {
+        "provider": "anthropic",
+        "why": "declared by an adapter (settings namespace \"llm-pi-ai\") but not registered; configure it to make this route usable"
+      },
+      {
+        "provider": "azure-openai-responses",
+        "why": "declared by an adapter (settings namespace \"llm-pi-ai\") but not registered; configure it to make this route usable"
+      },
+      {
+        "provider": "baseten",
+        "why": "declared by an adapter (settings namespace \"llm-pi-ai\") but not registered; configure it to make this route usable"
+      },
+      {
+        "provider": "cerebras",
+        "why": "declared by an adapter (settings namespace \"llm-pi-ai\") but not registered; configure it to make this route usable"
+      },
+      {
+        "provider": "cloudflare-ai-gateway",
+        "why": "declared by an adapter (settings namespace \"llm-pi-ai\") but not registered; configure it to make this route usable"
+      },
+      {
+        "provider": "cloudflare-workers-ai",
+        "why": "declared by an adapter (settings namespace \"llm-pi-ai\") but not registered; configure it to make this route usable"
+      },
+      {
+        "provider": "deepseek",
+        "why": "declared by an adapter (settings namespace \"llm-pi-ai\") but not registered; configure it to make this route usable"
+      },
+      {
+        "provider": "fireworks",
+        "why": "declared by an adapter (settings namespace \"llm-pi-ai\") but not registered; configure it to make this route usable"
+      },
+      {
+        "provider": "github-copilot",
+        "why": "declared by an adapter (settings namespace \"llm-pi-ai\") but not registered; configure it to make this route usable"
+      },
+      {
+        "provider": "google",
+        "why": "declared by an adapter (settings namespace \"llm-pi-ai\") but not registered; configure it to make this route usable"
+      },
+      {
+        "provider": "google-vertex",
+        "why": "declared by an adapter (settings namespace \"llm-pi-ai\") but not registered; configure it to make this route usable"
+      },
+      {
+        "provider": "groq",
+        "why": "declared by an adapter (settings namespace \"llm-pi-ai\") but not registered; configure it to make this route usable"
+      },
+      {
+        "provider": "huggingface",
+        "why": "declared by an adapter (settings namespace \"llm-pi-ai\") but not registered; configure it to make this route usable"
+      },
+      {
+        "provider": "kimi-coding",
+        "why": "declared by an adapter (settings namespace \"llm-pi-ai\") but not registered; configure it to make this route usable"
+      },
+      {
+        "provider": "minimax",
+        "why": "declared by an adapter (settings namespace \"llm-pi-ai\") but not registered; configure it to make this route usable"
+      },
+      {
+        "provider": "minimax-cn",
+        "why": "declared by an adapter (settings namespace \"llm-pi-ai\") but not registered; configure it to make this route usable"
+      },
+      {
+        "provider": "mistral",
+        "why": "declared by an adapter (settings namespace \"llm-pi-ai\") but not registered; configure it to make this route usable"
+      },
+      {
+        "provider": "moonshotai",
+        "why": "declared by an adapter (settings namespace \"llm-pi-ai\") but not registered; configure it to make this route usable"
+      },
+      {
+        "provider": "moonshotai-cn",
+        "why": "declared by an adapter (settings namespace \"llm-pi-ai\") but not registered; configure it to make this route usable"
+      },
+      {
+        "provider": "nvidia",
+        "why": "declared by an adapter (settings namespace \"llm-pi-ai\") but not registered; configure it to make this route usable"
+      },
+      {
+        "provider": "openai",
+        "why": "declared by an adapter (settings namespace \"llm-pi-ai\") but not registered; configure it to make this route usable"
+      },
+      {
+        "provider": "openai-codex",
+        "why": "declared by an adapter (settings namespace \"llm-pi-ai\") but not registered; configure it to make this route usable"
+      },
+      {
+        "provider": "opencode",
+        "why": "declared by an adapter (settings namespace \"llm-pi-ai\") but not registered; configure it to make this route usable"
+      },
+      {
+        "provider": "opencode-go",
+        "why": "declared by an adapter (settings namespace \"llm-pi-ai\") but not registered; configure it to make this route usable"
+      },
+      {
+        "provider": "openrouter",
+        "why": "declared by an adapter (settings namespace \"llm-pi-ai\") but not registered; configure it to make this route usable"
+      },
+      {
+        "provider": "qwen-token-plan",
+        "why": "declared by an adapter (settings namespace \"llm-pi-ai\") but not registered; configure it to make this route usable"
+      },
+      {
+        "provider": "qwen-token-plan-cn",
+        "why": "declared by an adapter (settings namespace \"llm-pi-ai\") but not registered; configure it to make this route usable"
+      },
+      {
+        "provider": "qwen-token-plan-individual",
+        "why": "declared by an adapter (settings namespace \"llm-pi-ai\") but not registered; configure it to make this route usable"
+      },
+      {
+        "provider": "together",
+        "why": "declared by an adapter (settings namespace \"llm-pi-ai\") but not registered; configure it to make this route usable"
+      },
+      {
+        "provider": "vercel-ai-gateway",
+        "why": "declared by an adapter (settings namespace \"llm-pi-ai\") but not registered; configure it to make this route usable"
+      },
+      {
+        "provider": "xai",
+        "why": "declared by an adapter (settings namespace \"llm-pi-ai\") but not registered; configure it to make this route usable"
+      },
+      {
+        "provider": "xiaomi",
+        "why": "declared by an adapter (settings namespace \"llm-pi-ai\") but not registered; configure it to make this route usable"
+      },
+      {
+        "provider": "xiaomi-token-plan-ams",
+        "why": "declared by an adapter (settings namespace \"llm-pi-ai\") but not registered; configure it to make this route usable"
+      },
+      {
+        "provider": "xiaomi-token-plan-cn",
+        "why": "declared by an adapter (settings namespace \"llm-pi-ai\") but not registered; configure it to make this route usable"
+      },
+      {
+        "provider": "xiaomi-token-plan-sgp",
+        "why": "declared by an adapter (settings namespace \"llm-pi-ai\") but not registered; configure it to make this route usable"
+      },
+      {
+        "provider": "zai",
+        "why": "declared by an adapter (settings namespace \"llm-pi-ai\") but not registered; configure it to make this route usable"
+      },
+      {
+        "provider": "zai-coding-cn",
+        "why": "declared by an adapter (settings namespace \"llm-pi-ai\") but not registered; configure it to make this route usable"
+      }
+    ]
+  },
+  "taskKeys": [
+    "feature",
+    "refactoring",
+    "bug-fix",
+    "perf-issue",
+    "hillclimb",
+    "judgment-and-prose",
+    "hardest-tasks",
+    "how-explorer",
+    "how-explainer",
+    "why-investigators",
+    "why-synthesizer",
+    "reflect-tooling",
+    "reflect-judgment",
+    "swarm-workers",
+    "arena-runners",
+    "arena-cross-judge-pool",
+    "architect-runners",
+    "interrogate-reviewers",
+    "independent-verifier",
+    "poteto-agent",
+    "comment-sicko"
+  ],
+  "panelRoles": [
+    "arena-runners",
+    "arena-cross-judge-pool",
+    "architect-runners",
+    "interrogate-reviewers"
+  ],
+  "unassigned": [
+    "feature",
+    "refactoring",
+    "bug-fix",
+    "perf-issue",
+    "hillclimb",
+    "hardest-tasks",
+    "why-synthesizer",
+    "reflect-tooling",
+    "swarm-workers"
+  ],
+  "modelSelection": {
+    "namespace": "subagent-model-selection",
+    "present": true,
+    "enabled": false
+  },
+  "card": {
+    "routes": [
+      {
+        "provider": "deepseek-official",
+        "model": "deepseek-flash",
+        "efforts": [
+          "off",
+          "low",
+          "high",
+          "max"
+        ],
+        "defaultEffort": "high"
+      },
+      {
+        "provider": "deepseek-official",
+        "model": "deepseek-v4-flash",
+        "efforts": [
+          "off",
+          "low",
+          "high",
+          "max"
+        ],
+        "description": "Fast, efficient, and economical; suited to focused, routine, or parallel tasks.",
+        "defaultEffort": "high"
+      },
+      {
+        "provider": "deepseek-official",
+        "model": "deepseek-v4-pro",
+        "efforts": [
+          "off",
+          "low",
+          "high",
+          "max"
+        ],
+        "description": "Stronger agentic coding, knowledge, and difficult reasoning; suited to complex or quality-critical tasks at higher cost.",
+        "defaultEffort": "high"
+      },
+      {
+        "provider": "deepseek-official",
+        "model": "deepseek-v4-flash-vision-exp",
+        "efforts": [
+          "off",
+          "low",
+          "high",
+          "max"
+        ],
+        "defaultEffort": "high"
+      }
+    ],
+    "routeSentence": "4 routes available: deepseek-official/deepseek-flash, deepseek-official/deepseek-v4-flash, deepseek-official/deepseek-v4-pro, deepseek-official/deepseek-v4-flash-vision-exp",
+    "onlyRoute": null,
+    "violinCount": 9,
+    "assignedTaskCount": 12,
+    "unassignedTaskCount": 9,
+    "knownTaskCount": 21,
+    "problems": [
+      {
+        "source": "repairs",
+        "text": "no fleet groups file and no overlay existed; wrote the default fleet to /home/user/projects/pstack/scratch/dsh-home/pstack-fleet.json"
+      }
+    ],
+    "groupsPath": "/home/user/projects/pstack/scratch/dsh-home/pstack-fleet.json",
+    "origin": "defaults"
+  }
+}

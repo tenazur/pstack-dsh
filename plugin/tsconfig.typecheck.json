@@ -1,0 +1,13 @@
+{
+  "$comment": [
+    "Typecheck-only config. It indexes the same sources as tsconfig.build.json but emits",
+    "nothing. `npm run typecheck` uses this so a check never depends on a previous build's",
+    "artifacts; `npm run build` uses tsconfig.build.json so it never writes into the source",
+    "tree. The two configs exist because one file cannot both `noEmit` and emit."
+  ],
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": ["src/**/*.ts"]
+}

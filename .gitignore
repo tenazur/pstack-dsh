@@ -1,0 +1,31 @@
+# Node / pnpm
+node_modules/
+*.log
+.npm/
+pnpm-debug.log*
+
+# Build output is COMMITTED for a DSH plugin: a `github:` install must not run
+# `prepare`, so `lib/` ships. Do not ignore lib/.
+# lib/
+
+# Local scratch (agents use ~/.dsh/tmp; nothing scratch belongs in the repo)
+scratch/
+*.local.*
+
+# Pinned upstream checkout. Reconstituted by scripts/fetch-upstream.sh, never committed:
+# Phase 3's diff gate compares against the pin, not against whatever a clone happens to hold.
+.upstream/
+
+# pnpm's content-addressable store, created in the workspace root by the plugin installs used
+# to verify the profile layer. Cache, not artifact.
+.pnpm-store/
+
+# Per-unit worktrees. Standing order 9 (one writer per path) needs a cut worktree per parallel
+# unit, and a worktree nested in the repo is otherwise seen as untracked content by every gate.
+.worktrees/
+
+# Editor / OS
+.DS_Store
+*.swp
+.idea/
+.vscode/

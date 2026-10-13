@@ -1,0 +1,5 @@
+# Portable composition entry. Mirrors cordis.patch.yml so a linked dev checkout and an
+# installed bundle agree on the plugin id.
+- insert:
+    - id: pstack
+      name: dsh-pstack

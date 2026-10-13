@@ -1,0 +1,35 @@
+{
+  "$comment": [
+    "Client-half build. Separate from tsconfig.json on purpose: this half is a browser **script**",
+    "that registers a lazy-CJS factory on window.__ModuleLoader__, so it needs the DOM lib, no",
+    "Node types, and CommonJS emit — while the host half is ESM with node types. One config",
+    "cannot be both.",
+    "",
+    "`rootDir: src/client` + `outDir: lib` is what puts the bundle at exactly `lib/client.js`",
+    "(the path package.json exports as ./client and the path the client-modules scan reads from",
+    "`exports['./client']`): the entry source is `src/client/client.ts`. The main config excludes",
+    "`src/client`, so the two builds never write the same file.",
+    "",
+    "`alwaysStrict: false` is deliberate: `strict` would otherwise emit a `\"use strict\";` prologue,",
+    "and these bundles are concatenated into one combo script by the host (`comboSource`/`buildCombo`",
+    "in dsh-client-modules/lib/index.js). A directive prologue at the top of that combo would put",
+    "every other plugin's factory in strict mode. No installed client bundle carries one; ours",
+    "should not either."
+  ],
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "node10",
+    "lib": ["ES2022", "DOM"],
+    "types": [],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noEmitOnError": true,
+    "skipLibCheck": true,
+    "alwaysStrict": false,
+    "outDir": "lib",
+    "rootDir": "src/client"
+  },
+  "include": ["src/client/**/*.ts"]
+}

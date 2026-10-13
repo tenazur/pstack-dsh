@@ -1,0 +1,6 @@
+# Generated from the shell's own bundle by extract-react.mjs: third-party code, and the file it is
+# cut from is on every machine that runs the GUI.
+react-from-shell.js
+# The rendered harness page and chromium's profile: both rebuilt on every gate run.
+layout-page.html
+.chrome-profile/

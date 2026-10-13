@@ -1,0 +1,7 @@
+# Installed by `bootstrap.ts` on first run of `orch` or `watch-pr`.
+#
+# It is a local artifact, not shipped source: `bun install --frozen-lockfile` rebuilds it from
+# `package.json` + `bun.lock`, and the root `.gitignore` already covers `node_modules/`. This
+# file exists so the reason is visible to anyone looking at the directory rather than only to
+# someone who thinks to run `git check-ignore`.
+node_modules/

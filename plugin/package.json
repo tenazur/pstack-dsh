@@ -1,0 +1,78 @@
+{
+  "name": "dsh-pstack",
+  "version": "0.1.0",
+  "private": true,
+  "description": "pstack for DeepSeek Harness: poteto's agent methodology (playbooks, principles, poteto-mode) with a DSH-native call layer. Methodology text is upstream's; only the harness call layer is ours.",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json",
+    "./client": {
+      "default": "./lib/client.js"
+    }
+  },
+  "files": [
+    "lib",
+    "skills",
+    "agents",
+    "cordis.patch.yml",
+    "HARNESS.md",
+    "UPGRADE.md",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "clean": "node -e \"require('node:fs').rmSync('lib', { recursive: true, force: true })\"",
+    "build": "npm run clean && tsc -p tsconfig.json && tsc -p tsconfig.client.json",
+    "typecheck": "tsc -p tsconfig.typecheck.json && tsc -p tsconfig.client.json --noEmit",
+    "test": "node --experimental-strip-types --test tests/*.spec.ts",
+    "check": "npm run typecheck && npm run test",
+    "verify": "npm run build && npm run check",
+    "lint:exports": "node ../scripts/check-dead-exports.mjs",
+    "setup": "npm install --include=dev"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tenazur/pstack-dsh.git",
+    "directory": "plugin"
+  },
+  "homepage": "https://github.com/tenazur/pstack-dsh#readme",
+  "bugs": {
+    "url": "https://github.com/tenazur/pstack-dsh/issues"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "slots"
+      ],
+      "platform": "web"
+    }
+  },
+  "license": "MIT",
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "pstack",
+    "poteto-mode",
+    "playbooks",
+    "principles",
+    "agent-methodology"
+  ]
+}
