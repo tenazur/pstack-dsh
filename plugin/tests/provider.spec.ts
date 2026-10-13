@@ -4,7 +4,7 @@
  * The provider must return candidates that survive the registry's own validators —
  * `validateCandidate` (`dsh-skill/lib/index.js:453`) and `validateDefinition` (`:478`) — and
  * those live in a package this one cannot import. So the invariants are mirrored here with the
- * citation, and the *real* check is the boot harness in `../../scratch/p2-boot/`, where the
+ * citation, and the *real* check is the boot harness in `scripts/check-route.sh`, where the
  * actual registry accepts or rejects them. A mirror test is rung 4 for our code and rung 3 for
  * the claim "the registry will accept it"; the harness is what closes that gap.
  */

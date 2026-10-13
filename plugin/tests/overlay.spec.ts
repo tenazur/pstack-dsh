@@ -9,7 +9,7 @@
  * to resolve with no `models` block and that claim is worth nothing against invented slugs.
  *
  * The vocabulary tests carry the weight of a known defect: a Phase 1 scratch probe
- * (`scratch/p1-port-assess/probe/src/roles.ts:53`) folded `generalPurpose` into `poteto-agent`.
+ * (an early port assessment) folded `generalPurpose` into `poteto-agent`.
  * The frozen skills are right and the scratch probe was wrong, so the rule is
  * asserted directly rather than left to a comment.
  */

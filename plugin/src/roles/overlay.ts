@@ -33,7 +33,7 @@
  * either spelling works.
  *
  * `generalPurpose` is **not** folded into `poteto-agent`. A Phase 1 scratch artifact did that
- * (`scratch/p1-port-assess/probe/src/roles.ts:53`), and that folding is wrong:
+ * (an early port assessment did the same), and that folding is wrong:
  * `generalPurpose` is the generic delegate with no agent file, `poteto-agent` is the routing
  * target that reads `poteto-mode` in full. Collapsing them makes `poteto-agent.md`'s own warning
  * self-defeating. {@link canonicalRole} preserves the three spawn role values verbatim.

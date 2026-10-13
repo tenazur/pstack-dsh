@@ -8,7 +8,8 @@
  * candidate/definition validators in `@deepseek-ai/dsh-skill/lib/index.js`
  * (`validateCandidate` :453, `validateDefinition` :478). If DSH changes those, this file is
  * what has to change with it — the boot-time registration proof lives in `tests/` and in the
- * host harness under `../../scratch/`, because TypeScript cannot check a structural copy.
+ * route gate, which boots a real Host (`scripts/check-route.sh`), because TypeScript cannot
+ * check a structural copy.
  *
  * Bodies are never cached: the registry re-reads through `get()` on every load
  * (`dsh-skill/lib/index.js:256`), so an edited SKILL.md is picked up without a restart.

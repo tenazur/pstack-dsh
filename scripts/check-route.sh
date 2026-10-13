@@ -71,10 +71,11 @@ repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 port="${ROUTE_GATE_PORT:-3121}"
 
-# Working state goes to a TEMP directory, never inside the repo. A gitignored `scratch/` is still
-# on disk and still has to be cleaned by a human; a temp dir costs nothing and leaves the checkout
-# exactly as it was. The template this gate boots from IS tracked (`scripts/host-fixture/`), because
-# a fresh clone has to be able to run it — that is the distinction: committed inputs, temp outputs.
+# Working state goes to a TEMP directory: this gate's output is a boot log and a throwaway home,
+# which is exactly what `mktemp -d` is for, and the checkout is left untouched either way. The
+# template it boots from IS tracked (`scripts/host-fixture/`), because a fresh clone has to be able
+# to run it — committed inputs, temp outputs. `scratch/` would also work (it is gitignored); a temp
+# dir is chosen because nothing here needs to be found again after the run.
 scratch="${ROUTE_GATE_WORKDIR:-$(mktemp -d "${TMPDIR:-/tmp}/pstack-route-XXXXXX")}"
 own_scratch=0
 [[ -n "${ROUTE_GATE_WORKDIR:-}" ]] || own_scratch=1

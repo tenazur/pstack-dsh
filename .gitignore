@@ -8,10 +8,17 @@ pnpm-debug.log*
 # `prepare`, so `lib/` ships. Do not ignore lib/.
 # lib/
 
-# No `scratch/` entry: nothing writes inside the repo any more. Gates and agents work in a temp
-# directory ($DSH_HOME/tmp or mktemp -d), and the one input a gate needs is TRACKED
-# (scripts/host-fixture/). If a `scratch/` reappears here, something has started writing into the
-# repo again and that entry should not be added back to hide it.
+# A repo-local scratch directory, ignored so it can be used freely as working space — the same
+# role `$DSH_HOME/tmp` and `mktemp -d` play. Prefer a temp directory for anything that is truly
+# throwaway; `scratch/` is for work that wants to sit beside the tree it is about.
+#
+# Ignoring it is not a licence to leave it dirty. An ignored directory still occupies the disk and
+# still has to be cleaned by a human, so:
+#   * never let the repo DEPEND on anything here. Inputs a gate needs are tracked
+#     (`scripts/host-fixture/`); only outputs belong in scratch.
+#   * nothing committed may cite a path under `scratch/` — a fresh clone does not have one, so the
+#     citation would be unverifiable.
+scratch/
 *.local.*
 
 # Pinned upstream checkout. Reconstituted by scripts/fetch-upstream.sh, never committed:

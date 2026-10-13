@@ -2,7 +2,7 @@
  * `pstack_spawn_panel` — the Phase 5 fan-out tool: **one child per route entry**.
  *
  * `pstack_spawn` is deliberately left alone. Its single-child contract is frozen and
- * live-verified (`scratch/p4-spawn/live2.log`), so the widening is a *second tool* with its own
+ * live-verified against a booted Host, so the widening is a *second tool* with its own
  * schema and its own tests rather than a `width` argument on the first one. A caller that wants
  * one child keeps the contract it already had; a caller that wants a panel says so by name.
  *

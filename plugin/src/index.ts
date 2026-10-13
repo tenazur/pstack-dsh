@@ -221,7 +221,7 @@ export const BOOT_MARKER = '[dsh-pstack] loaded'
  *
  * The effort listener adds **no** name: it touches only `ctx.on('agent/request', …)`, and an
  * untagged listener is global without any service behind it (`dsh-scope/README.md`; the Phase 1
- * probe registered exactly that way — `scratch/p1-effort-path/plugin-effort-probe/index.js`).
+ * probe registered exactly that way, and `tests/effort.spec.ts` reproduces it.)
  */
 export const inject = ['skills', 'tools', 'subagents', 'llm']
 
