@@ -1,385 +1,277 @@
 # dsh-pstack
 
-pstack for **DeepSeek Harness**: poteto's agent methodology (playbooks, principles, a sticky
-`poteto-mode`) with a DSH-native call layer.
+pstack for **DeepSeek Harness**: Lauren Tan's agent methodology (23 principles, 23 playbooks, a
+sticky `poteto-mode`, 2 agents) with a DSH-native call layer.
 
-**Main writer:** `ofar` — the DSH port, its call layer, its settings surface and its gates. The
-methodology text is not mine; see **Porting** below. The package ships under the MIT licence so the
-work can be forked freely.
+The methodology text is upstream's, copied byte-identical from a pinned commit. The call layer is
+this package's: how a role becomes a spawn, how a model and reasoning effort are applied to it, and
+how you choose them.
 
-## Porting, and what changed
-
-**What pstack is.** [pstack](https://github.com/cursor/plugins/tree/main/pstack) is Lauren Tan's
-agent methodology, written for Cursor and its `Task` tool: 23 principles that constrain how an agent
-decides, 23 playbooks that sequence a kind of work, a sticky `poteto-mode` operating style, and two
-named agents. It is prose that tells a model *how* to delegate — which is exactly the part that does
-not survive a change of host.
-
-**What this package is.** A port of that methodology onto DeepSeek Harness, plus the call layer DSH
-needs for the prose to mean anything. The skills were copied **byte-identical** from the pinned
-upstream commit and then edited at their *call sites only* — the places where upstream says "use
-Cursor's Task tool" and DSH has something else. The methodology itself is untouched.
-
-| | |
-|---|---|
-| Upstream | `cursor/plugins`, `pstack/` at `5bf2b1544db739998121a306340631963c2ff3de` (MIT, Lauren Tan) |
-| Ported | **47** skill directories — **23** principles, **23** playbooks — and **2** agents |
-| Ours | `pstack-self-check`, the call layer, the fleet surface, the gates |
-| Deliberately not shipped | Cursor-only pieces (`make-bot-ui`, control skills), the 10-chapter upstream guide |
-
-**What changed at those call sites.** Three things, and no others:
-
-1. **One frontmatter line was dropped from 46 of the 47 skills** — `disable-model-invocation: true`
-   (`setup-pstack`, the 47th, never carried it upstream). DSH filters a skill carrying that key out of
-   the model's catalog *and* refuses a named `skill` call for it, so keeping it would ship skills
-   whose own text tells the model to load them and which the model then cannot reach. This is the
-   single line that decides whether all 23 principles are visible or none are. (One skill still
-   mentions the key in its **body**, describing it as a convention for the skills *it* generates —
-   that is prose, not frontmatter, and it is upstream's.)
-2. **Cursor's tool parameters were translated to DSH's.** Upstream addresses the `Task` tool;
-   `pstack_spawn` is what exists here. The ported prose now names only parameters this plugin's tools
-   actually declare — a skill that tells a model to pass a parameter the tool rejects costs a whole
-   turn, and the fix is in the skill, not in a tool that would accept and ignore it.
-3. **Route names were replaced by role names.** Upstream's defaults name specific Cursor models
-   (`grok-4.6-fast-xhigh`, `claude-fable-5-1-thinking-max`) that do not exist in DSH. Those survive
-   in exactly one place — a fenced block in `setup-pstack` that quotes them in order to say *these are
-   Cursor's defaults and they do not resolve here*. Everywhere else a role resolves through the
-   overlay against the **live** route catalog, so a name that is not installed is refused rather than
-   invented.
-
-Everything else in the skill tree is upstream's words. `UPGRADE.md` records the porting rule and how
-to re-sync with a newer pin.
-
-## What it is
-
-pstack is Lauren Tan's agent methodology, written for Cursor and its `Task` tool. **The stock DSH
-`subagent` tool can carry a route** — `provider`, `model`, `reasoning_effort` — but only when a
-Host-owned user preference (`subagent-model-selection`, `{enabled, allowedModels}`) is on, and
-**it defaults off** (`dsh-tool-subagent/lib/index.js:412-430`;
-`dsh-tool-subagent/lib/model-selection-settings.js:45,51,59`). So the capability exists and is
-unavailable on a default install — which is why this plugin owns a spawn tool: it works on a
-fresh install with default settings, and it is where pstack's policy belongs, namely the
-role→route table, refusing a route that is not usable, and refusing an effort the route does not
-advertise.
-
-**The plugin must never flip that preference.** A plugin that silently turns on a user setting is
-a plugin that surprises its owner. The spawn tool therefore owns routing outright: it reads the
-overlay itself, resolves the role, and refuses a route or an effort the live catalog does not
-advertise. The long form — the three DSH layers that disagree about whether model selection is on,
-and why riding the stock tool would make routing depend on a setting its owner never chose — is
-decision `0002` in the repository this package was built from
-(<https://github.com/cursor/plugins>); it is not restated here beyond that.
+**Main writer:** `ofar`. MIT.
 
 ## Install
 
-From the published repository — no npm account and no build step:
+Requires `dsh` and `pnpm` on your `PATH`. No npm account and no build step — the compiled entry is
+committed:
 
 ```sh
 dsh plugin --profile web add "github:tenazur/pstack-dsh#path:/plugin"
 ```
 
-The `#path:/plugin` part is required, not decoration: this package lives in a subdirectory of
+The `#path:/plugin` is required: this package is in a subdirectory of
 <https://github.com/tenazur/pstack-dsh>, and a git URL resolves from the repository root, which has
-no `package.json`. Without it pnpm finds no package and the install fails.
+no `package.json`.
 
 From a checkout, which is what you want while developing — it links the tree so `lib/` is read live:
 
 ```sh
-dsh plugin --profile web add "link:$PWD/plugin"   # `add` needs pnpm on PATH
+dsh plugin --profile web add "link:$PWD/plugin"
 ```
 
-`add` writes the profile but does **not** hot-load a running process: restart the Host and reload
-the page afterwards.
+Restart the Host afterwards and reload the page. `add` writes the profile but does not hot-load a
+running process.
 
-**Then check the profile actually lists it.** `add` edits
-`~/.dsh/profiles/<name>/package.json` in two places — `dependencies` and `dsh.profile.bundles` — and
-a DSH **upgrade that rebuilds the profile drops both**, silently. That is not hypothetical: the
-`web` profile on this machine was rebuilt for 0.2.0-rc.2 and came back without `dsh-pstack`, so the
-plugin was simply absent, with nothing in the boot log to say so (the pre-upgrade profile survives
-as `web.bak-0.1.5` and still lists it). A package missing from `bundles` never loads, however
-healthy its `dependencies` entry looks. Read the file back after installing, and again after any
-DSH upgrade:
+**Check the profile lists it.** `add` edits `~/.dsh/profiles/<name>/package.json` in two places —
+`dependencies` and `dsh.profile.bundles` — and a DSH upgrade that rebuilds the profile drops both,
+silently. A package missing from `bundles` never loads, however healthy its `dependencies` entry
+looks. Read the file back after installing, and again after any DSH upgrade:
 
 ```sh
 node -e 'const p=require(process.env.HOME+"/.dsh/profiles/web/package.json");console.log(p.dsh.profile.bundles.includes("dsh-pstack"))'
 ```
 
-Then: reload the page, open **Settings → pstack Fleet**, and check the route line at the top of the
-page. If it reads `0 routes available`, no LLM provider adapter is registered — nothing to route to
-yet, and configuring a credential will not change that. Assigning tasks is **[Usage](#usage)** below.
+Then open **Settings → pstack Fleet**. If the route line reads `0 routes available`, no LLM provider
+adapter is registered — nothing to route to yet, and configuring a credential will not change that.
+
+## The tools
+
+Three model-facing tools. The stock DSH `subagent` tool can carry a route (`provider`, `model`,
+`reasoning_effort`), but only when the Host preference `subagent-model-selection` is enabled, and it
+defaults off. This plugin does not touch that preference; it owns a spawn tool instead, which works
+on a default install and is where pstack's routing policy lives.
+
+### `pstack_status`
+
+Reports whether the plugin is live: the boot marker, the overlay file it resolved, the fleet groups
+file, and the bundled skills it can see on disk. Read-only, no arguments. Use it to confirm an
+install took, rather than reading the filesystem.
+
+### `pstack_spawn`
+
+Runs one child on a role's resolved model and reasoning effort.
+
+| Parameter | Required | What it is |
+|---|---|---|
+| `role` | yes | A role key, resolved against the fleet |
+| `prompt` | yes | The complete, self-contained task. The child does not see this conversation |
+| `description` | no | A short label for the transcript; defaults to the role key |
+| `route_index` | no | For a panel role, which entry of its route list to use. Ignored by a scalar role |
+
+A role with no usable mapping **inherits the parent's model** — it does not fall back to a sibling
+role. That is the correct behaviour on a single-route install, not a degraded one.
+
+The tool refuses at call time rather than passing a bad route through: a model the live catalog does
+not carry, or a reasoning effort that route does not advertise, is rejected by name.
+
+### `pstack_spawn_panel`
+
+Runs one child per selection of a panel role, all with the same prompt. The children cannot see each
+other.
+
+| Parameter | Required | What it is |
+|---|---|---|
+| `role` | yes | One of the four comparison roles; any other role is refused |
+| `prompt` | yes | The same prompt for every child |
+| `description` | no | A short label for the transcripts |
+| `count` | no | Children to spawn when the role inherits (1–4, default 2). Ignored when the role has a usable route list, whose length sets the width |
+
+Children run **sequentially** and the width is capped at 4. A same-route panel buys **coverage, not
+corroboration** — it widens a search, it does not give you independent review. The result says so
+when the panel was same-route.
 
 ## Usage
 
-### The agent selection interface — violins
+### Assign models to work
 
-pstack routes work by **task**, not by agent name. Upstream answered "which model runs this"
-with named agents; this port **ditched the named-agent menu** and replaced it with **violins** —
-a named group of one or more model selections (provider + model + reasoning effort) that owns some
-tasks. Nothing is assigned to a *person* or a *persona*; you assign a **task** to a group, and
-every child spawned for that task runs on that group's models.
+Open **Settings → pstack Fleet**. pstack routes by **task**, not by agent name: you group tasks, and
+every child spawned for a task in that group runs on the group's models.
 
-Open **Settings → pstack Fleet**. Nine violins exist the first time you look — five **predefined**,
-four **comparison** — and the page shows them in three bands, followed by the tasks no violin has
-claimed:
+A group is called a **violin** — one or more model selections, each a provider, a model and a
+reasoning effort. Nine exist on first use:
 
 | Band | Violins | What they are for |
 |---|---|---|
-| Predefined | `general`, `working`, `planning`, `fast`, `vision` | the everyday groups; `general` is the fallback |
+| Predefined | `general`, `working`, `planning`, `fast`, `vision` | everyday work; `general` is the fallback |
 | Comparison | `arena-runners`, `arena-cross-judge-pool`, `architect-runners`, `interrogate-reviewers` | one per panel task, built to hold several selections |
-| Custom | anything you add with **Add group** | yours; the only band that can be deleted |
+| Custom | whatever you add | yours; the only band you can delete |
 
-Using it:
+- **Assign a task** by picking a violin from its picker. Every task key the build knows is either in
+  a violin or listed as Unassigned; an unassigned task runs on `general`.
+- **Move a task** by picking a different violin. It is moved, not copied — a task belongs to exactly
+  one violin.
+- **Edit selections** by expanding a violin and choosing provider, model and reasoning effort. Each
+  picker offers only what this install has registered.
+- **Add group** creates a custom violin with no tasks.
+- **Refresh models** re-reads the registered models, for after you enable or configure a provider.
 
-- **Assign a task** by picking a violin from its picker. Every task key the build knows is either
-  in a violin or listed as **Unassigned**, so nothing is invisible — and an unassigned task runs on
-  `general` rather than nowhere.
-- **Move a task** by picking a different violin: a task already in a violin is *moved*, not copied,
-  because a task belongs to one violin. Taking it out of its violin leaves it unassigned again.
-- **Edit a violin's selections**: expand it and set provider, model and reasoning effort. Each
-  picker offers only what the live catalog reports for this install.
-- **Add a group** names a new custom violin; it starts with no tasks, and only a custom violin can
-  be deleted.
-- **Refresh models** re-reads the live route catalog (`GET /api/pstack/fleet?refresh=1`), so the
-  pickers offer what this machine has registered right now. Do this after adding or enabling a
-  provider adapter.
-- There is **no Save button and no JSON editor**. Every structural edit is written immediately, and
-  a refusal prints the host's own sentence and keeps your edit on screen.
+There is no Save button and no JSON editor. Every edit is written immediately; a refusal prints the
+host's reason and keeps your edit on screen.
 
-Rules you will meet, each enforced by the parser or the write gate and each naming the offender:
+Four rules the page enforces:
 
-- **One task belongs to exactly one violin.** A violin may hold many tasks.
-- **A violin with several selections may only hold comparison tasks.** Two models on `feature`
-  would make "which model ran my child" unanswerable.
-- **A violin with no selection** points its tasks at `inherit-parent` rather than at a name with
-  nothing behind it.
-- **A capability the catalog does not offer leaves that violin empty** rather than pointing it at a
-  model that cannot do the job.
-
-The **groups file is the source of truth** and the overlay is derived from it, so hand-editing the
-overlay is not a supported edit. The rules above are the whole set a user needs; when this page and
-the code disagree, `src/roles/fleet-groups.ts` is the authority.
-
-### The two ways to configure it, and the one asymmetry
-
-There are two doors — `/setup-pstack`, and the interface — and they behave differently depending on
-what is already on disk. The reconciliation is one function, `resolveGroups`
-(`plugin/src/settings/fleet-http.ts:152-198`), which is the authority for everything below:
-
-| On disk | What a load does |
-|---|---|
-| **no groups file**, an overlay present | imports the overlay into a groups file, once (`fleet-http.ts:174-182`), origin `imported` |
-| **no groups file**, no overlay | writes the default fleet (`fleet-http.ts:192-197`), origin `defaults` |
-| **a groups file that parses** | that file wins; it is served as-is (`fleet-http.ts:157-159`), origin `file` |
-| **a groups file that does not parse** | the overlay is imported instead and the groups file is rebuilt, with the parse error reported (`fleet-http.ts:160-170`) |
-
-That gives the asymmetry to know about:
-
-- On a machine with **no** groups file, the two doors are **equivalent**: a `/setup-pstack` run is
-  imported into a groups file on the next load (`fleet-http.ts:174-182`), so the skill's choices
-  become the fleet's starting state.
-- On a machine that **already has** a groups file, **that file wins**. A `/setup-pstack` re-run
-  writes the overlay; the next load re-derives the overlay from the groups file and rewrites it
-  (`fleet-http.ts:275-282`, which also reports the repair), so the skill's edit does not stick.
-  Once violins exist, edit the fleet in the interface.
-
-Two more consequences of the same shape:
-
-- `PUT /api/pstack/overlay` is a `405` naming the fleet route: with a groups file in front of it, a
-  write there would answer `200` and be reverted by the next load, so the route refuses instead
-  (`plugin/src/settings/http.ts:597-628`).
-- The writes go **groups first, then overlay**, each an atomic rename. A crash between the two
-  leaves a groups file the next load can re-derive from, rather than an overlay no violin agrees
-  with (`fleet-http.ts:351-353`).
-
-### The three tools
-
-| Tool | What it is for |
-|---|---|
-| `pstack_status` | whether the plugin is live, the files it resolved, the skills it sees. Read-only |
-| `pstack_spawn` | one child on a role's resolved route; an inheriting role sends no route at all |
-| `pstack_spawn_panel` | one child per selection of a panel violin; children run **sequentially**, width capped at 4 |
+- One task belongs to exactly one violin; a violin may hold many tasks.
+- A violin with several selections may only hold comparison tasks. Two models on `feature` would
+  make "which model ran my child" unanswerable.
+- A violin with no selection points its tasks at `inherit-parent`.
+- A capability the catalog does not offer leaves that violin empty.
 
 ### The roles you can pass
 
-`pstack_spawn` takes a `role`. Three values come from the ported skills' own text —
-**`generalPurpose`** (the generic delegate: no agent file, the parent's model and guidance),
-**`poteto-agent`** (the routing target that reads `poteto-mode` in full) and **`comment-sicko`**
-(the read-only comment reviewer) — plus the kebab-case task keys: `feature`, `refactoring`,
-`bug-fix`, `perf-issue`, `hillclimb`, `judgment-and-prose`, `hardest-tasks`, `how-explorer`,
-`how-explainer`, `why-investigators`, `why-synthesizer`, `reflect-tooling`, `reflect-judgment`,
-`swarm-workers`, `independent-verifier`, and the four comparison tasks. `generalPurpose` is **not**
-folded into `poteto-agent`; a role with no usable mapping inherits the parent rather than falling
-back to a sibling role. `src/roles/overlay.ts` (`ROLE_KEYS`, `PANEL_ROLES`) is the list of record.
+Three values come from the ported skills' own text:
 
-### Setup
+- **`generalPurpose`** — the generic delegate: no agent file, the parent's model.
+- **`poteto-agent`** — the routing target that reads `poteto-mode` in full.
+- **`comment-sicko`** — the read-only comment reviewer.
 
-`/setup-pstack` is the guided run: it detects the routes this session can spawn on, asks for a
-budget, shows every role with its model and writes `$DSH_HOME/pstack.json`. It works as it always
-did — see [`skills/setup-pstack/SKILL.md`](skills/setup-pstack/SKILL.md), which ships in this
-package. Its own steps describe the *file*, because that is the file it writes; on a machine that
-already has a groups file, read the asymmetry above.
+Plus every task key from the fleet page: `feature`, `refactoring`, `bug-fix`, `perf-issue`,
+`hillclimb`, `judgment-and-prose`, `hardest-tasks`, `how-explorer`, `how-explainer`,
+`why-investigators`, `why-synthesizer`, `reflect-tooling`, `reflect-judgment`, `swarm-workers`,
+`independent-verifier`, and the four comparison tasks.
 
-## What you get
+`generalPurpose` is **not** folded into `poteto-agent`.
 
-Three model-facing tools:
+### Configure from the command line
 
-- **`pstack_status`** — reports whether the plugin is live: boot marker, the overlay file it
-  resolved, and the bundled skills it sees on disk. Read-only, no arguments.
-- **`pstack_spawn`** — one child on a role's resolved route; an inheriting role sends no route
-  at all.
-- **`pstack_spawn_panel`** — one child per route entry of a panel role
-  (`arena-runners`, `arena-cross-judge-pool`, `architect-runners`, `interrogate-reviewers`), one
-  child per named model the task lists. Children run **sequentially**; width is capped at 4.
+`/setup-pstack` is the guided alternative: it detects the models this session can spawn on, asks for
+a budget, and writes `$DSH_HOME/pstack.json`.
 
-Plus **47 skill directories** — 46 ported from the pinned upstream and `pstack-self-check`, ours —
-of which **23 are principles** and **23 are playbooks**, and **2 agents**. The upstream 10-chapter
-`docs/guide` is **not** shipped.
+It writes a different file from the page. That file is a role-to-model map, and the fleet groups
+file the page edits is the richer document it is derived from. So:
 
-Plus a **settings page**: a `settings.section` client slot labelled *pstack Fleet*, backed by the
-host's fleet route, `GET|PUT /api/pstack/fleet`. A **violin** is a named group of one or more model
-selections that owns some tasks; the page shows the predefined violins, the comparison violins, any
-custom ones, and the tasks no violin has claimed. Every provider, model and effort it offers comes
-from the catalog payload it fetched. A `PUT` body is parsed, checked against the live catalog, and
-written atomically with mode `0600` — **both files, groups first**.
+- **On a fresh machine the two are equivalent.** Run `/setup-pstack` and its choices become the
+  starting fleet on the next load.
+- **Once a groups file exists, that file wins.** A later `/setup-pstack` run writes its map, but the
+  next load re-derives it from the groups file and overwrites it. Edit the fleet on the page from
+  then on.
 
 ## The two files
 
-Model assignments and task mappings live in **`$DSH_HOME/pstack.json`** (`defaultOverlayPath()`),
-and that is the file the spawn path reads. It is a **projection**, not the source of truth: the page
-edits a second file, **`$DSH_HOME/pstack-fleet.json`** (`defaultGroupsPath()`), which holds the
-violins, and `toOverlay()` derives the overlay from it on every write. There is exactly **one
-writer**, `PUT /api/pstack/fleet`; `PUT /api/pstack/overlay` is a `405` because with a groups file
-in front of it a write there would answer `200` and be silently reverted by the next load's
-reconciliation.
+`$DSH_HOME/pstack-fleet.json` holds the violins and is the source of truth.
+`$DSH_HOME/pstack.json` is the overlay the spawn path reads, derived from the groups file on every
+write.
 
-The rule behind that shape: **the page must never write a file a later load would overwrite.** A
-route that answers `200` and is then silently reverted is worse than a route that refuses, because
-the caller believes the write landed. So the groups file is the source of truth, the overlay is
-derived on every write, and both are renamed into place — groups first — so a crash between the two
-leaves a groups file that the next load can re-derive from rather than an overlay no violin agrees
-with. Decision `0005` in the source repository holds the full argument.
+There is one writer, `PUT /api/pstack/fleet`. `PUT /api/pstack/overlay` answers `405`: with a groups
+file in front of it, a write there would succeed and then be reverted by the next load, so the route
+refuses instead. Both files are renamed into place, groups first, so a crash between the two leaves
+a groups file the next load can re-derive from.
 
-The overlay has **two levels**, because the question is *which model does what*:
+The overlay has two levels, because the question is *which model does what*:
 
-1. **Models** — a friendly name maps to one concrete assignment: one provider, one model, one
-   reasoning effort. `off` is a legitimate effort, not an absence. The name is what a person
-   reads; `provider/model · effort` is the detail behind it.
-2. **Tasks** — a role key maps to the **named model(s)** it may run on. Tasks point at names,
-   never at raw routes. A panel task (`arena-runners`, `arena-cross-judge-pool`,
-   `architect-runners`, `interrogate-reviewers`) may list several names; any other task may list
-   exactly one, and a second name is refused by name rather than narrowed to the first.
+1. **Models** — a friendly name maps to one provider, one model, one reasoning effort. `off` is a
+   legitimate effort, not an absence.
+2. **Tasks** — a role key maps to the named model(s) it may run on. Tasks point at names, never at
+   raw routes. A panel task may list several names; any other task may list exactly one, and a
+   second name is refused rather than narrowed to the first.
 
 ```json
 {
   "version": 2,
   "models": {
-    "general":  { "provider": "deepseek-official", "model": "deepseek-flash", "reasoningEffort": "off", "description": "the default; unassigned tasks" },
-    "planning": { "provider": "deepseek-official", "model": "deepseek-v4-pro", "reasoningEffort": "max", "description": "planning and hard reasoning" },
-    "fast":     { "provider": "deepseek-official", "model": "deepseek-v4-flash", "reasoningEffort": "low", "description": "cheap parallel work" },
-    "vision":   { "provider": "deepseek-official", "model": "deepseek-v4-flash-vision-exp" }
+    "general":  { "provider": "deepseek-official", "model": "deepseek-flash", "reasoningEffort": "off" },
+    "planning": { "provider": "deepseek-official", "model": "deepseek-v4-pro", "reasoningEffort": "max" },
+    "fast":     { "provider": "deepseek-official", "model": "deepseek-v4-flash", "reasoningEffort": "low" }
   },
   "tasks": {
-    "feature":             ["general"],
-    "judgment-and-prose":  ["planning"],
-    "arena-runners":       ["planning", "general", "fast"],
-    "bug-fix":             ["general"]
+    "feature":            ["general"],
+    "judgment-and-prose": ["planning"],
+    "arena-runners":      ["planning", "general", "fast"],
+    "bug-fix":            ["general"]
   }
 }
 ```
 
-The projection's model names are the **violin ids**, because a violin with one selection names its
-model after itself; a violin with several names them `id-1 … id-n`, since a task's value is a list
-and a repeated name would say nothing about which selection it meant. So the overlay above is what
-a fleet of `general`, `planning`, `fast` and `vision` projects to, and it is illustrative of the
-shape rather than a capture of the file on disk — read `$DSH_HOME/pstack.json` for that.
+`{"version": 2}` alone is a valid overlay: it resolves the built-in names (`main`, `smart`, `fast`,
+`vision`, `inherit-parent`) against the live catalog. A `models` entry overrides a built-in of the
+same name. The built-ins are vestigial — no violin writes them — and are kept only so an overlay
+written before violins existed still resolves.
 
-**A hand-written overlay needs no boilerplate.** `{"version": 2}` alone resolves the built-in names
-against the live catalog, using the adapter's own description of what each model suits: `main`
-(`deepseek-flash`, effort `off`), `smart` (`deepseek-v4-pro`, `max`), `fast` (`deepseek-v4-flash`,
-`low`), `vision` (`deepseek-v4-flash-vision-exp`), and `inherit-parent` (not a route: a task
-pointing at it runs wherever the parent runs). A `models` entry **overrides** a built-in of the
-same name. These built-in names are **vestigial**: no violin writes them any more. They are kept
-only so that an overlay written before violins existed still resolves; treating them as the
-supported surface would mean documenting a shape nothing produces. A hand-written overlay is read
-**once**, imported into a groups file on the next load; after that the groups file is the truth
-and the overlay is rewritten from it.
+A name that is neither built-in nor declared is an error at parse time, naming the task and the
+name. A task with no entry, an empty list, or `inherit-parent` inherits the parent.
 
-**A name that is neither built-in nor declared is an error at parse time**, naming the task and
-the name. A task never silently inherits a route nobody assigned — that is the failure mode the
-whole program keeps finding. A task with no entry, or an empty list, or `inherit-parent`, does
-inherit the parent, which is the correct one-route behaviour rather than a degraded one.
+Task keys are normalised, so `judgment and prose` and `judgment-and-prose` are the same task; writing
+both spellings in one file is an error.
 
-Task keys are normalised, so `judgment and prose` and `judgment-and-prose` are the same task — and
-writing both spellings in one file is an error, not last-one-wins.
+`version: 1` still reads, as *everything inherits the parent*. v1's keys are role keys and its values
+are routes, while v2's are tasks and model names. The page reports that a v1 file is present and
+names the routes it carried and no longer applies.
 
-**`version: 1` still reads, and says what reading it costs.** A v1 file (`{version, roles}`) is
-read as *everything inherits the parent*: v1's keys are role keys and its values are routes, while
-v2's keys are tasks and its values are model names, and those are different things. The page and
-`pstack_status` report that a v1 file is present, and the page names the routes v1 carried and no
-longer applies, rather than pretending the file still works.
-
-## Reasoning effort per model
+## Reasoning effort
 
 A model's `reasoningEffort` is part of its assignment and is applied to that child through the
-**`agent/request` waterfall** (`src/effort.ts`), keyed on the child the spawn tool published. Which
-effort ids exist is the route adapter's answer, not this package's: `off`, `low`, `high` and `max`
-on this machine. An effort the route does not advertise is **refused on write and reported on
-read**, never passed through and never silently downgraded — which is also why no *tier name* is
-offered. A word like `xhigh` that names a model on some other host's ladder is not an id this
-adapter advertises, and the page would reject it.
+`agent/request` waterfall, keyed on the child the spawn tool published.
 
-## The one-route reality
+Which effort ids exist is the route adapter's answer, not this package's. An effort the route does
+not advertise is **refused on write and reported on read**, never passed through and never silently
+downgraded. That is also why no tier name is offered: a word like `xhigh` that names a model on some
+other host's ladder is not an id this adapter advertises.
 
-The settings page states the measurement rather than implying a fleet. This is what it says when
-the catalog offers a single route:
+## What ships
 
-```
-1 route available: deepseek-official/deepseek-flash
-Panel roles fan out same-route. No cross-family review — seed diversity, not parity.
-Measured at width 2 on bounded exploration: the pair agreed on 7 of 19 points and each
-raised points the other missed (7 and 5), so same-route fan-out buys a wider search.
-Do not read panel agreement as corroboration.
-```
+- **47 skill directories** — 46 ported from the pin, plus `pstack-self-check`. 23 principles and 23
+  playbooks among them.
+- **2 agents.**
+- **Three tools** — `pstack_status`, `pstack_spawn`, `pstack_spawn_panel`.
+- **A `settings.section` client slot** labelled *pstack Fleet*, backed by
+  `GET|PUT /api/pstack/fleet`.
 
-A same-route panel buys **coverage, not corroboration**.
+Not shipped: the upstream 10-chapter guide, and the Cursor-only pieces (`make-bot-ui`, the control
+skills).
 
 ## Develop
 
 ```sh
 cd plugin
-npm install --include=dev   # npm defaults to omit=dev here (standing order 13), so a plain
-                            # `npm install` installs nothing and the check has no compiler
+npm install --include=dev   # a plain `npm install` omits dev deps here, so the check has no compiler
 npm run build               # tsc -> lib/ and lib/client.js
 npm run check               # typecheck + tests
-npm test                    # node --experimental-strip-types --test tests/*.spec.ts
 ```
+
+`src/` is TypeScript and ships uncompiled; the Host loads `lib/`. Rebuild after any `src/` change.
 
 ## Where the truth lives
 
-[`HARNESS.md`](HARNESS.md) records every DSH API this plugin uses with the source it was confirmed
-against, and **outranks any README**. It ships in this package; read it before changing anything
-that touches the Host.
+[`HARNESS.md`](HARNESS.md) records every DSH API this plugin uses, with the source each claim was
+confirmed against. It outranks this README. Read it before changing anything that touches the Host.
 
-Everything else this README refers to lives in the source repository, not in this tarball: the
-program, the evidence, and the numbered decisions. That is deliberate — a published package carries
-what it needs to run and to be read on its own, and the design record belongs to the repository that
-produces it. The upstream methodology this port is derived from is at
-<https://github.com/cursor/plugins>.
+[`UPGRADE.md`](UPGRADE.md) records the porting rule and how to re-sync with a newer upstream pin.
 
-## Re-syncing with upstream
+## Porting
 
-[`UPGRADE.md`](UPGRADE.md) **ships in this package** and is linked above. It records the pinned
-upstream commit (`cursor/plugins` `5bf2b15…`, MIT, Lauren Tan), how to reconstitute that tree, and
-the porting rule that every changed skill must satisfy.
+Upstream: `cursor/plugins`, `pstack/` at `5bf2b1544db739998121a306340631963c2ff3de` (MIT, Lauren
+Tan), at <https://github.com/cursor/plugins>.
 
-It ships because it is the one document about this package's *provenance* rather than its *design*,
-and provenance is exactly what a stranger installing a port needs: which upstream revision these 46
-skills came from, and how to tell whether a later one is better. The re-sync scripts it names
-(`fetch-upstream.sh`, `check-parity.sh`, `check-call-sites.sh`, `batch-plan.sh`) live in the source
-repository, and `UPGRADE.md` says so — running them is an authoring task, not an installing one.
+| | |
+|---|---|
+| Ported | 47 skill directories (23 principles, 23 playbooks), 2 agents |
+| Ours | `pstack-self-check`, the call layer, the fleet surface, the gates |
+| Not shipped | `make-bot-ui`, the control skills, the 10-chapter guide |
+
+Three things changed at the call sites, and no others:
+
+1. **One frontmatter line was dropped from 46 of the 47 skills** — `disable-model-invocation: true`
+   (`setup-pstack` never carried it). DSH filters a skill with that key out of the model's catalog
+   and refuses a named `skill` call for it, so keeping it would ship skills whose own text tells the
+   model to load them and which the model cannot reach.
+2. **Cursor's tool parameters were translated to DSH's.** Upstream addresses the `Task` tool;
+   `pstack_spawn` is what exists here. The ported prose names only parameters this plugin's tools
+   declare.
+3. **Route names were replaced by role names.** Upstream's defaults name Cursor models that do not
+   exist in DSH. A role resolves through the overlay against the live catalog, so a name that is not
+   installed is refused rather than invented.
+
+Everything else in the skill tree is upstream's words. See [`UPGRADE.md`](UPGRADE.md) for the rule
+and the re-sync procedure.
 
 ## License
 
-MIT. The methodology text is Lauren Tan's, from `cursor/plugins`; see [`LICENSE`](LICENSE), which
-carries the attribution and ships in this package.
-
+MIT. The methodology text is Lauren Tan's, from `cursor/plugins`; see [`LICENSE`](LICENSE).

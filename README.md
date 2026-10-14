@@ -14,10 +14,45 @@ Pinned upstream: `cursor/plugins` at `5bf2b1544db739998121a306340631963c2ff3de` 
 
 - **47 skills** — 46 ported from the pin, plus `pstack-self-check`; 23 principles and 23 playbooks
   among them, and 2 agents.
-- **Three tools** — `pstack_status` reports whether the plugin is live; `pstack_spawn` runs one
-  child on a role's model and reasoning effort; `pstack_spawn_panel` runs one child per selection of
-  a panel role.
+- **Three tools** for the model to delegate with.
 - **A settings page** — *pstack Fleet*, where you assign models to kinds of work.
+
+## The tools
+
+The stock DSH `subagent` tool can carry a route (`provider`, `model`, `reasoning_effort`), but only
+when the Host preference `subagent-model-selection` is enabled, and it defaults off. This plugin
+does not touch that preference. It owns a spawn tool instead, which works on a default install and
+is where pstack's routing policy lives.
+
+**`pstack_status`** — whether the plugin is live: the boot marker, the files it resolved, the skills
+it can see. Read-only, no arguments. Use it to confirm an install took.
+
+**`pstack_spawn`** — runs one child on a role's model and reasoning effort.
+
+| Parameter | Required | What it is |
+|---|---|---|
+| `role` | yes | A role key, resolved against the fleet |
+| `prompt` | yes | The complete task. The child does not see the parent's conversation |
+| `description` | no | A short label for the transcript |
+| `route_index` | no | For a panel role, which entry of its route list to use |
+
+A role with no usable mapping inherits the parent's model rather than falling back to a sibling. The
+tool refuses a model the live catalog does not carry, or an effort that route does not advertise,
+naming the offender.
+
+**`pstack_spawn_panel`** — runs one child per selection of a panel role, all with the same prompt.
+The children cannot see each other.
+
+| Parameter | Required | What it is |
+|---|---|---|
+| `role` | yes | One of the four comparison roles; any other role is refused |
+| `prompt` | yes | The same prompt for every child |
+| `description` | no | A short label for the transcripts |
+| `count` | no | Children when the role inherits (1–4, default 2) |
+
+Children run sequentially and the width is capped at 4. A same-route panel buys **coverage, not
+corroboration**: it widens a search, it does not give you independent review. The result says so
+when the panel was same-route.
 
 ## Install
 
@@ -34,10 +69,7 @@ install fails.
 
 Restart the Host afterwards, then reload the page. `add` writes the profile but does not hot-load a
 running process. A client-side change (the *pstack Fleet* page) also needs a hard refresh, because
-the browser caches the bundle.
-
-Check it took with `pstack_status`, which reports the files the plugin resolved and the skills it
-can see.
+the browser caches the bundle. Run `pstack_status` to confirm the install took.
 
 ## Usage
 
@@ -99,9 +131,8 @@ file the page edits is the richer document it is derived from. So:
   `judgment-and-prose`, `hardest-tasks`, `how-explorer`, `how-explainer`, `why-investigators`,
   `why-synthesizer`, `reflect-tooling`, `reflect-judgment`, `swarm-workers`, `independent-verifier`.
 
-A role with no usable mapping inherits the parent's model rather than falling back to a sibling.
-
-`pstack_spawn_panel` takes one of the four comparison roles and runs one child per selection.
+[`plugin/README.md`](plugin/README.md) covers the overlay file format, the reasoning-effort rules
+and the porting history.
 
 ## Develop
 
