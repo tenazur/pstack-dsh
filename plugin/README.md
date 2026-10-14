@@ -256,7 +256,7 @@ Tan), at <https://github.com/cursor/plugins>.
 | Ours | `pstack-self-check`, the call layer, the fleet surface, the gates |
 | Not shipped | `make-bot-ui`, the control skills, the 10-chapter guide |
 
-Three things changed at the call sites, and no others:
+Four things changed at the call sites, and no others:
 
 1. **One frontmatter line was dropped from 46 of the 47 skills** — `disable-model-invocation: true`
    (`setup-pstack` never carried it). DSH filters a skill with that key out of the model's catalog
@@ -268,6 +268,10 @@ Three things changed at the call sites, and no others:
 3. **Route names were replaced by role names.** Upstream's defaults name Cursor models that do not
    exist in DSH. A role resolves through the overlay against the live catalog, so a name that is not
    installed is refused rather than invented.
+4. **Script paths were anchored to this package.** Four playbooks said to run `scripts/orch/orch.ts`
+   and `scripts/watch-pr/watch-pr`, which resolves from upstream's repository root and nowhere else.
+   They now name `<skillsDirectory>/poteto-mode/scripts/…`, and `pstack_status` reports the absolute
+   `skillsDirectory`.
 
 Everything else in the skill tree is upstream's words. See [`UPGRADE.md`](UPGRADE.md) for the rule
 and the re-sync procedure.

@@ -27,10 +27,13 @@ Verified: `git -C .upstream/cursor-plugins rev-parse HEAD` prints the pin.
    (`47 = 47 upstream − make-bot-ui + pstack-self-check`); it cannot prove the text is faithful,
    and it says nothing about call sites.
 3. `scripts/check-call-sites.sh` — no Cursor/Grok leftovers in `plugin/skills` + `plugin/agents`
-   (`--baseline` shows what the rules catch on the dirty upstream tree). It proves nothing that
-   *should* have changed was missed; it cannot prove a translated call site now says the right
-   thing.
-4. `scripts/batch-plan.sh` — re-partitions the pinned skill set into per-path writer batches and
+   (`--baseline` shows what the rules catch on the dirty upstream tree). It covers two of the three
+   call-site kinds: tool names and model slugs. It proves nothing that *should* have changed was
+   missed; it cannot prove a translated call site now says the right thing.
+4. **By hand: the path kind.** `grep -rn 'scripts/orch\|scripts/watch-pr\|check-plan.mjs'
+   plugin/skills` — every hit should read `<skillsDirectory>/…`, not a bare relative path. No gate
+   checks this, because a bare path is indistinguishable from ordinary prose.
+5. `scripts/batch-plan.sh` — re-partitions the pinned skill set into per-path writer batches and
    prints each batch's size. It plans only; it never writes into `plugin/`.
 
 Then re-apply the port rule below to every changed skill, and finish with
@@ -44,22 +47,41 @@ Quoted from [`skills/README.md`](skills/README.md):
 > stay byte-identical otherwise.
 
 So: copy byte-identical, translate call sites, drop exactly one line —
-`disable-model-invocation: true`. That line is not a judgement call (decision `0003` in the source
-repository): DSH filters a skill carrying it out of the model-facing catalog **and** refuses a named
-`skill` call for it, so keeping it ships skills the text tells the model to load and the model
-cannot. `setup-pstack` never had the key; the other 46 directories drop it. The plugin's own
-`tests/invocation.spec.ts` enforces this against the real bundled tree.
+`disable-model-invocation: true`. That line is not a judgement call: DSH filters a skill carrying it
+out of the model-facing catalog **and** refuses a named `skill` call for it, so keeping it ships
+skills the text tells the model to load and the model cannot. `setup-pstack` never had the key; the
+other 46 directories drop it. The plugin's own `tests/invocation.spec.ts` enforces that against the
+real bundled tree.
+
+**What counts as a call site**, since the rule turns on it: any name a model or a person is told to
+*use*, where the name does not resolve here. Three kinds, and only these:
+
+| Kind | Example | What it becomes |
+|---|---|---|
+| A tool | Cursor's `Task` tool | `pstack_spawn` |
+| A model slug | `grok-4.6-fast-xhigh` | a role resolved against the live catalog |
+| A path | `scripts/orch/orch.ts` | `<skillsDirectory>/poteto-mode/scripts/orch/orch.ts` |
+
+The path kind was added late and is the one that hides best: a bare relative path is prose, so it
+reads as methodology, but a reader in *their own* repository resolves it against the wrong root and
+finds nothing.
+
+Everything else stays upstream's words. `scripts/check-call-sites.sh` enforces the first two; the
+third is checked by reading, which is why it took a dedicated pass to find.
 
 ## Deliberately not shipped
 
 - **`make-bot-ui`** — Cursor-only, no content to translate.
 - **The 10-chapter guide** (`pstack/docs/guide/`) — 10 upstream chapters, 0 shipped here.
-- **`poteto-mode/scripts/`** ships byte-identical and **stays that way**: seven playbooks reference
-  it by path, so dropping it would leave dangling instructions. bun **is** installed
-  (`~/.bun/bin/bun`, 1.4.2), and `scripts/bootstrap.ts` runs `bun install --frozen-lockfile` and
-  re-execs on first use — so running it fetches a dependency from the network. That is exactly why
-  **no plugin code path may call into `scripts/`**: not a boot, not a tool registration, not a
-  settings read.
+- **`poteto-mode/scripts/`** ships whole — dropping it would leave four playbooks instructing a
+  person to run a tool that is not there. Its *code* is upstream's, unmodified, but the four
+  playbooks that name it had their paths translated, because the bare form was not a call site a
+  user could follow: `scripts/orch/orch.ts` resolves from this repository's root, which is a path
+  only the author has. They now read `<skillsDirectory>/poteto-mode/scripts/…`, and
+  `pstack_status` reports the absolute `skillsDirectory`. bun **is** installed (`~/.bun/bin/bun`,
+  1.4.2), and `scripts/bootstrap.ts` runs `bun install --frozen-lockfile` and re-execs on first
+  use — so running it fetches a dependency from the network. That is exactly why **no plugin code
+  path may call into `scripts/`**: not a boot, not a tool registration, not a settings read.
 
 ## `lib/` is committed on purpose
 

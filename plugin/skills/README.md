@@ -12,8 +12,9 @@ The 47 upstream SKILL.md directories from `cursor/plugins` `pstack/`, at the com
 ## The rule for porting
 
 **Translate call sites only, and drop exactly one frontmatter line.** Methodology text must
-stay byte-identical otherwise. The Phase 3 gate is a mechanical diff against upstream proving
-the only changes are:
+stay byte-identical otherwise. **No gate proves that** — `check-parity.sh` compares counts, and
+`check-call-sites.sh` catches tool names and model slugs, so the byte-identity half of this rule is
+held by reading the diff, not by a script. The changes made are:
 
 | Upstream | Ours |
 |---|---|
@@ -27,6 +28,12 @@ the only changes are:
 | `cursor-team-kit` `deslop` | the bundled `unslop` |
 | Cursor control skills | drive the real surface (browser, CLI, tests) |
 | `/loop` | `create_goal` / `update_goal` |
+| `scripts/orch/orch.ts` | `<skillsDirectory>/poteto-mode/scripts/orch/orch.ts` |
+| `git show origin/main:pstack/skills/…` | `<skillsDirectory>/…` |
+
+`skillsDirectory` is the absolute path `pstack_status` reports. Upstream's bare paths resolve from
+its own repository root, and `origin/main:pstack/skills/…` assumes the methodology repo *is* the
+one you are working in — both are layouts only the author has.
 
 **Why the invocation line goes, and it is not a judgement call.** 46 of the 47 upstream skills
 set `disable-model-invocation: true`. DSH honours it by filtering the model-facing catalog
