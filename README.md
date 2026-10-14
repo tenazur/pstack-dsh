@@ -17,43 +17,6 @@ Pinned upstream: `cursor/plugins` at `5bf2b1544db739998121a306340631963c2ff3de` 
 - **Three tools** for the model to delegate with.
 - **A settings page** — *pstack Fleet*, where you assign models to kinds of work.
 
-## The tools
-
-The stock DSH `subagent` tool can carry a route (`provider`, `model`, `reasoning_effort`), but only
-when the Host preference `subagent-model-selection` is enabled, and it defaults off. This plugin
-does not touch that preference. It owns a spawn tool instead, which works on a default install and
-is where pstack's routing policy lives.
-
-**`pstack_status`** — whether the plugin is live: the boot marker, the files it resolved, the skills
-it can see. Read-only, no arguments. Use it to confirm an install took.
-
-**`pstack_spawn`** — runs one child on a role's model and reasoning effort.
-
-| Parameter | Required | What it is |
-|---|---|---|
-| `role` | yes | A role key, resolved against the fleet |
-| `prompt` | yes | The complete task. The child does not see the parent's conversation |
-| `description` | no | A short label for the transcript |
-| `route_index` | no | For a panel role, which entry of its route list to use |
-
-A role with no usable mapping inherits the parent's model rather than falling back to a sibling. The
-tool refuses a model the live catalog does not carry, or an effort that route does not advertise,
-naming the offender.
-
-**`pstack_spawn_panel`** — runs one child per selection of a panel role, all with the same prompt.
-The children cannot see each other.
-
-| Parameter | Required | What it is |
-|---|---|---|
-| `role` | yes | One of the four comparison roles; any other role is refused |
-| `prompt` | yes | The same prompt for every child |
-| `description` | no | A short label for the transcripts |
-| `count` | no | Children when the role inherits (1–4, default 2) |
-
-Children run sequentially and the width is capped at 4. A same-route panel buys **coverage, not
-corroboration**: it widens a search, it does not give you independent review. The result says so
-when the panel was same-route.
-
 ## Install
 
 Requires `dsh` and `pnpm` on your `PATH`. No npm account, no build step — the compiled entry is
@@ -71,9 +34,66 @@ Restart the Host afterwards, then reload the page. `add` writes the profile but 
 running process. A client-side change (the *pstack Fleet* page) also needs a hard refresh, because
 the browser caches the bundle. Run `pstack_status` to confirm the install took.
 
-## Usage
+## Using it in your repository
 
-### Assign models to work
+Nothing to install per project. The plugin registers once, and everything it adds is available in
+whatever repository you open:
+
+- **The 47 skills** sit in your agent's catalog, so `/how`, `/architect`, `/tdd`, `poteto-mode` and
+  the rest work on any checkout. They read the code in front of them; they add no files to it.
+- **Tasks come from the fleet**, not from your project. `feature`, `bug-fix`, `refactoring` and the
+  others are pstack's vocabulary, and their models are whatever you assigned on the settings page.
+- **Routing is global.** The overlay and groups file live in `$DSH_HOME`, so one fleet covers every
+  repository you work in. A role resolves to the same model whichever project is open.
+
+Two things follow from how DSH runs children, and both surprise people once:
+
+- **A spawned child shares your workspace, not a copy.** There is no isolation field. If two workers
+  must not touch the same tree, the parent runs `git worktree add` and puts that path in the prompt.
+  Several playbooks do this for you; a plain `pstack_spawn` does not.
+- **Your model decides the role.** `pstack_spawn` is a tool the agent calls; you can also just ask
+  for the work and let it pick. Naming a role in your prompt — "use `poteto-agent` for this" — is
+  the direct way to route one task.
+
+## Settings
+
+There are two ways to say which model does what, and they write different files:
+
+- **`/setup-pstack`** — guided. Detects the models this session can spawn on, asks for a budget, and
+  writes `$DSH_HOME/pstack.json`.
+- **The *pstack Fleet* page** — **Settings → pstack Fleet**. Edits the richer groups file, and is
+  what the overlay is derived from.
+
+On a fresh machine they are equivalent. **Once a groups file exists, that file wins** — a later
+`/setup-pstack` run writes its map and the next load overwrites it from the groups file. From then
+on, edit the fleet on the page.
+
+Details, including the file formats and the reasoning-effort rules, are below.
+
+## Skills
+
+47 skills, all invoked by name and all usable in any repository. The ones you will reach for:
+
+| Skill | What it does |
+|---|---|
+| `poteto-mode` | The front door. Give it a goal and it picks the playbook, then calls the other skills as steps need them |
+| `how` / `why` | What the code does now; why it is shaped that way. Both before you edit |
+| `teach` | `how` and `why` woven into one explanation |
+| `architect` | Settles types and boundaries before implementation |
+| `arena` | Runs several attempts at one brief and merges the best parts |
+| `interrogate` | Has other models try to break a result |
+| `swarm` | Fans out slices or races, then aggregates |
+| `tdd`, `unslop`, `no-comments` | Build and clean: a failing test first, prose discipline, comment hygiene |
+| `blast-radius` | What a change could break beyond the diff |
+| `reflect` | Reviews the active transcript and routes findings to a skill edit |
+
+plus **23 principles** you steer with by name mid-task, and **23 playbooks** `poteto-mode` selects
+from. The rest are listed in [`plugin/README.md`](plugin/README.md).
+
+You do not have to name a skill. Describe the goal and a checkable outcome and `poteto-mode` routes
+it; naming one is how you override that choice.
+
+## Settings in detail
 
 Open **Settings → pstack Fleet**. pstack routes by **task**, not by agent name: you group tasks, and
 every child spawned for a task in that group runs on the group's models.
@@ -107,32 +127,56 @@ Four rules the page enforces:
 - A violin with no selection points its tasks at `inherit-parent`.
 - A capability the catalog does not offer leaves that violin empty.
 
-### Configure from the command line
+### The command-line alternative
 
-`/setup-pstack` is the guided alternative: it detects the models this session can spawn on, asks for
-a budget, and writes `$DSH_HOME/pstack.json`.
+`/setup-pstack` walks the same decision from the chat: it detects the models this session can spawn
+on, asks for a budget, shows every role with its model, and writes `$DSH_HOME/pstack.json` — the
+overlay, which is a plain role-to-model map rather than the groups file. The overlap and which one
+wins are described under [Settings](#settings) above.
 
-It writes a different file from the page. That file is a role-to-model map, and the fleet groups
-file the page edits is the richer document it is derived from. So:
+## The tools
 
-- **On a fresh machine the two are equivalent.** Run `/setup-pstack` and its choices become the
-  starting fleet on the next load.
-- **Once a groups file exists, that file wins.** A later `/setup-pstack` run writes its map, but the
-  next load re-derives it from the groups file and overwrites it. Edit the fleet on the page from
-  then on.
+The stock DSH `subagent` tool can carry a route (`provider`, `model`, `reasoning_effort`), but only
+when the Host preference `subagent-model-selection` is enabled, and it defaults off. This plugin
+does not touch that preference. It owns a spawn tool instead, which works on a default install and
+is where pstack's routing policy lives.
 
-### Run work
+**`pstack_status`** — whether the plugin is live: the boot marker, the files it resolved, the skills
+it can see. Read-only, no arguments. Use it to confirm an install took.
 
-`pstack_spawn` takes a `role` and a `prompt`:
+**`pstack_spawn`** — runs one child on a role's model and reasoning effort.
 
-- The three values the ported skills use: `generalPurpose` (generic delegate), `poteto-agent`
-  (reads `poteto-mode` in full) and `comment-sicko` (read-only comment reviewer).
-- Any task key from the fleet page: `feature`, `refactoring`, `bug-fix`, `perf-issue`, `hillclimb`,
-  `judgment-and-prose`, `hardest-tasks`, `how-explorer`, `how-explainer`, `why-investigators`,
-  `why-synthesizer`, `reflect-tooling`, `reflect-judgment`, `swarm-workers`, `independent-verifier`.
+| Parameter | Required | What it is |
+|---|---|---|
+| `role` | yes | A role key, resolved against the fleet |
+| `prompt` | yes | The complete task. The child does not see the parent's conversation |
+| `description` | no | A short label for the transcript |
+| `route_index` | no | For a panel role, which entry of its route list to use |
 
-[`plugin/README.md`](plugin/README.md) covers the overlay file format, the reasoning-effort rules
-and the porting history.
+A role with no usable mapping inherits the parent's model rather than falling back to a sibling. The
+tool refuses a model the live catalog does not carry, or an effort that route does not advertise,
+naming the offender.
+
+Valid `role` values are the fleet's task keys — `feature`, `refactoring`, `bug-fix`, `perf-issue`,
+`hillclimb`, `judgment-and-prose`, `hardest-tasks`, `how-explorer`, `how-explainer`,
+`why-investigators`, `why-synthesizer`, `reflect-tooling`, `reflect-judgment`, `swarm-workers`,
+`independent-verifier` — plus three the ported skills use by name: `generalPurpose` (generic
+delegate, no agent file), `poteto-agent` (reads `poteto-mode` in full) and `comment-sicko`
+(read-only comment reviewer). `generalPurpose` is not folded into `poteto-agent`.
+
+**`pstack_spawn_panel`** — runs one child per selection of a panel role, all with the same prompt.
+The children cannot see each other.
+
+| Parameter | Required | What it is |
+|---|---|---|
+| `role` | yes | One of the four comparison roles; any other role is refused |
+| `prompt` | yes | The same prompt for every child |
+| `description` | no | A short label for the transcripts |
+| `count` | no | Children when the role inherits (1–4, default 2) |
+
+Children run sequentially and the width is capped at 4. A same-route panel buys **coverage, not
+corroboration**: it widens a search, it does not give you independent review. The result says so
+when the panel was same-route.
 
 ## Develop
 
